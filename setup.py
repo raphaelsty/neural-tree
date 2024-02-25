@@ -1,6 +1,6 @@
 import setuptools
 
-from neural_cherche.__version__ import __version__
+from neural_tree.__version__ import __version__
 
 with open(file="README.md", mode="r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -29,11 +29,12 @@ setuptools.setup(
     url="https://github.com/raphaelsty/neural-tree",
     download_url="https://github.com/user/neural-tree/archive/v_01.tar.gz",
     keywords=[
+        "tree search",
         "neural search",
         "information retrieval",
         "semantic search",
-        "ColBERT",
-        "Tree",
+        "colbert",
+        "tree",
     ],
     packages=setuptools.find_packages(),
     install_requires=base_packages,

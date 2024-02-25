@@ -13,11 +13,13 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="license"></a>
 </div>
 
-Neural-Tree is designed to accelerate inference of Information Retrieval models. Neural-Tree implements SIGIR 2023 [Li et al., 2023](https://dl.acm.org/doi/10.1145/3539618.3591651) publication. 
+<p></p>
 
-Neural-Tree is tailored to work efficiently with ColBERT, Sentence Transformer and TfIdf models.
+Are tree-based indexes the counterpart of standard ANN algorithms for token-level embeddings IR models? Neural-Tree replicate the SIGIR 2023 publication [Constructing Tree-based Index for Efficient and Effective Dense Retrieval](https://dl.acm.org/doi/10.1145/3539618.3591651) in order to accelerate ColBERT. Neural-Tree is compatible with Sentence Transformers and TfIdf models as in the original paper. 
 
-We can create a tree from scratch or use an existing tree structure. The tree must be trained with a set of paired queries and documents. Once the tree is trained, we can retrieve relevant documents or leafs from the tree given a set of queries.
+Neural-Tree creates a tree using hierarchical clustering of documents and then learn embeddings in each node of the tree using paired queries and documents. Additionally, there is the flexibility to input an existing tree structure in JSON format to build the index.
+
+The optimization of the index by Neural-Tree is geared towards maintaining the performance level of the original model while significantly speeding up the search process. It is important to note that Neural-Tree does not modify the underlying model; therefore, it is advisable to initiate tree creation with a model that has already been fine-tuned. Given that Neural-Tree does not alter the model, the index training process is relatively quick.
 
 ## Installation
 
@@ -40,33 +42,14 @@ The complete documentation is available [here](https://raphaelsty.github.io/neur
 
 ## Quick Start
 
-In order to create a tree-based index, we will need to gather training data.
-The training data consists of queries and documents paired:
-
-```python
-train_queries = [
-    "query document a",
-    "query document b",
-    "query document c",
-    "query document d",
-]
-
-train_documents = [
-    {"id": "doc a", "text": "document a"},
-    {"id": "doc b", "text": "document b"},
-    {"id": "doc c", "text": "document c"},
-    {"id": "doc d", "text": "document d"},
-]
-```
-
-The following code shows how to train a tree model using the `scifact` dataset.
-You can replace the `scifact` dataset with any other dataset.
+The following code shows how to train a tree model using the `scifact` dataset which load
+train_documents, train_queries and the whole corpora of documents.
 
 ```python
 import torch
 
-from nlp_tree import clustering, datasets, trees, utils
 from neural_cherche import models
+from neural_tree import clustering, datasets, trees, utils
 
 documents, train_queries, train_documents = datasets.load_beir_train(
     dataset_name="scifact",
@@ -78,13 +61,13 @@ model = models.ColBERT(
 )
 
 tree = trees.ColBERT(
-    key="id", # The field to use as a key for the documents.
-    on=["title", "text"], # The fields to use for the model.
+    key="id",
+    on=["title", "text"],
     model=model,
     documents=documents, 
-    leaf_balance_factor=100, # Minimum number of documents per leaf.
-    branch_balance_factor=5, # Number of childs per node.
-    n_jobs=-1, # We want to set it to 1 when using Google Colab, -1 otherwise.
+    leaf_balance_factor=100,
+    branch_balance_factor=5,
+    n_jobs=-1, # We want to set it to 1 when using Google Colab.
 )
 
 optimizer = torch.optim.AdamW(lr=3e-2, params=list(tree.parameters()))
@@ -123,12 +106,16 @@ tree = tree.add(
 
 ## Search
 
+We can now search for documents using the tree we have trained:
+
 ```python
 candidates = tree(
-    queries=test_queries,
+    queries=["science topic", "history topic"],
     k_leafs=2, # number of leafs to search
     k=10, # number of documents to retrieve
 )
+
+print(candidates)
 ```
 
 ## Evaluation
@@ -155,10 +142,92 @@ scores = utils.evaluate(
 print(scores)
 ```
 
-## Benchmarks
+## Benchmarks 
 
+<table>
+<thead>
+  <tr>
+    <th colspan="2" rowspan="2"></th>
+    <th colspan="9">Scifact Dataset</th>
+  </tr>
+  <tr>
+    <th colspan="4">Vanilla</th>
+    <th colspan="5">Neural-Tree </th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>model</td>
+    <td>HuggingFace Checkpoint</td>
+    <td>ndcg@10</td>
+    <td>hits@10</td>
+    <td>hits@1</td>
+    <td>queries / second</td>
+    <td>ndcg@10</td>
+    <td>hits@10</td>
+    <td>hits@1</td>
+    <td>queries / second</td>
+    <td>Acceleration</td>
+  </tr>
+  <tr>
+    <td>TfIdf<br>Cherche</td>
+    <td>-</td>
+    <td>0,61</td>
+    <td>0,85</td>
+    <td>0,47</td>
+    <td>760</td>
+    <td>0,56</td>
+    <td>0,82</td>
+    <td>0,42</td>
+    <td>1080</td>
+    <td>+42.11%</td>
+  </tr>
+  <tr>
+    <td>SentenceTransformer GPU<br>Faiss.IndexFlatL2 CPU</td>
+    <td>sentence-transformers/all-mpnet-base-v2</td>
+    <td>0,66</td>
+    <td>0,89</td>
+    <td>0,53</td>
+    <td>475</td>
+    <td>0,66</td>
+    <td>0,88</td>
+    <td>0,53</td>
+    <td>518</td>
+    <td>+9.05%</td>
+  </tr>
+  <tr>
+    <td>ColBERT<br>Neural-Cherche GPU</td>
+    <td>raphaelsty/neural-cherche-colbert</td>
+    <td>0,70</td>
+    <td>0,92</td>
+    <td>0,58</td>
+    <td>3</td>
+    <td>0,70</td>
+    <td>0,91</td>
+    <td>0,59</td>
+    <td>256</td>
+    <td>x85</td>
+  </tr>
+</tbody>
+</table>
+
+Note that this benchmark do not implement [ColBERTV2](https://arxiv.org/abs/2112.01488) efficient retrieval but rather compare ColBERT raw retrieval with Neural-Tree. We could accelerate SentenceTransformer vanilla by using optimized Faiss index.
+
+## Contributing
+
+Contributions to Neural-Tree are welcome. This tool aims to tackle tree visualization,
+modeling node topics, and using the tree to speed up LLM search. We are also looking to improve clustering of ColBERT embeddings while performing hierarchical clustering which is now handled by TfIdf. The optimization clustering is also a good place to contribute in order to provide an end-to-end ColBERT cluster optimization without TfIdf.
+
+## License
+
+This project is licensed under the terms of the MIT license.
 
 ## References
 
-- [Constructing Tree-based Index for Efficient and Effective Dense Retrieval, Li et al., 2023](https://github.com/cshaitao/jtr)
+- [Constructing Tree-based Index for Efficient and Effective Dense Retrieval, Github](https://github.com/cshaitao/jtr)
 
+- [ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT](https://arxiv.org/abs/2004.12832)
+
+- [Myriade](https://github.com/MaxHalford/myriade)
+
+ 

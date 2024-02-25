@@ -12,7 +12,7 @@ import shutil
 
 from numpydoc.docscrape import ClassDoc, FunctionDoc
 
-package = "neural_cherche"
+package = "neural_tree"
 
 # shutil.copy("README.md", "docs/index.md")
 

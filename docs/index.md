@@ -4,7 +4,7 @@
   <p>Neural Search</p>
 </div>
 
-<p align="center"><img width=500 src="docs/img/neural_tree.png"/></p>
+<p align="center"><img width=500 src="./img/neural_tree.png"/></p>
 
 <div align="center">
   <!-- Documentation -->

@@ -10,6 +10,44 @@ __all__ = ["SentenceTransformer"]
 class SentenceTransformer(Tree):
     """Tree with Sentence Transformer scoring function.
 
+    Parameters
+    ----------
+    key
+        Key to identify the documents.
+    on
+        List of columns to use for the retrieval.
+    model
+        Sentence Transformer model.
+    documents
+        List of documents to index.
+    graph
+        Existing graph to initialize the tree.
+    leaf_balance_factor
+        Balance factor for the leafs. Once there is less than `leaf_balance_factor`
+        documents in a node, the node becomes a leaf.
+    branch_balance_factor
+        Balance factor for the branches. The number of children of a node is limited to
+        `branch_balance_factor`.
+    device
+        Device to use for the retrieval.
+    n_jobs
+        Number of jobs to use when creating the tree. If -1, all CPUs are used.
+    batch_size
+        Batch size to use when creating the tree.
+    max_iter
+        Maximum number of iterations to perform with Kmeans algorithm when creating the
+        tree.
+    n_init
+        Number of time the KMeans algorithm will be run with different centroid seeds.
+    create_retrievers
+        Whether to create the retrievers or not. If False, the tree is only created and
+        the __call__ method will only output relevant leafs and scores rather than
+        ranked documents.
+    tqdm_bar
+        Whether to show the tqdm bar when creating the tree.
+    seed
+        Random seed.
+
     Examples
     --------
     >>> from neural_tree import trees

@@ -1,4 +1,5 @@
 nav:
-    - Home: fine_tune
-    - retrieve
+    - Home: trees
+    - existing_tree
     - evaluate
+    - api

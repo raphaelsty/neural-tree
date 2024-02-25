@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 from neural_cherche import models
 
 from ..retrievers import ColBERT as colbert_retriever

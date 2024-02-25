@@ -1,73 +1,113 @@
 # Evaluate
 
-Neural-Cherche evaluation is based on [RANX](https://github.com/AmenRa/ranx). We can also download datasets of [BEIR Benchmark](https://github.com/beir-cellar/beir) with the `utils.load_beir` function.
+Neural-tree evaluation is based on [RANX](https://github.com/AmenRa/ranx). We can also download datasets of [BEIR Benchmark](https://github.com/beir-cellar/beir) with the `utils.load_beir` function.
 
 
 ## Installation
 
 ```bash
-pip install "neural-cherche[eval]"
+pip install "neural-tree[eval]"
 ```
 
 ## Usage
 
-Let"s first create a pipeline which output candidates and scores:
+Here is an example of how to train a tree-based index using the `scifact` dataset and how to evaluate it.
 
 ```python
-from neural_cherche import models, retrieve, utils
+import torch
+from neural_cherche import models
+from sentence_transformers import SentenceTransformer
 
-model = models.Splade(
-    model_name_or_path="distilbert-base-uncased",
-    device="cpu",
+from neural_tree import clustering, datasets, trees, utils
+
+documents, train_queries, train_documents = datasets.load_beir_train(
+    dataset_name="scifact",
 )
 
-# Input dataset for evaluation
-documents, queries_ids, queries, qrels = utils.load_beir(
-    "scifact",
-    split="test",
+
+model = models.ColBERT(
+    model_name_or_path="raphaelsty/neural-cherche-colbert",
+    device="cuda",
 )
 
-# Let"s keep only 10 documents for the example
-documents = documents[:10]
-
-retriever = retrieve.Splade(key="id", on=["title", "text"], model=model)
-
-documents_embeddings = retriever.encode_documents(
+# We intialize a ColBERT index from a
+# SentenceTransformer-based hierarchical clustering.
+tree = trees.ColBERT(
+    key="id",
+    on=["title", "text"],
+    model=model,
+    sentence_transformer=SentenceTransformer(model_name_or_path="all-mpnet-base-v2"),
     documents=documents,
-    batch_size=1,
+    leaf_balance_factor=100,
+    branch_balance_factor=5,
+    n_jobs=-1,
+    device="cuda",
+    faiss_device="cuda",
 )
 
-documents_embeddings = retriever.add(
-    documents_embeddings=documents_embeddings,
+optimizer = torch.optim.AdamW(lr=3e-3, params=list(tree.parameters()))
+
+
+for step, batch_queries, batch_documents in utils.iter(
+    queries=train_queries,
+    documents=train_documents,
+    shuffle=True,
+    epochs=50,
+    batch_size=128,
+):
+    loss = tree.loss(
+        queries=batch_queries,
+        documents=batch_documents,
+    )
+
+    loss.backward()
+    optimizer.step()
+    optimizer.zero_grad(set_to_none=True)
+
+
+documents, queries_ids, test_queries, qrels = datasets.load_beir_test(
+    dataset_name="scifact",
 )
 
-queries_embeddings = retriever.encode_queries(
-    queries=queries,
-    batch_size=batch_size,
+documents_to_leafs = clustering.optimize_leafs(
+    tree=tree,
+    queries=train_queries + test_queries,
+    documents=documents,
 )
 
-scores = retriever(
-    queries_embeddings=queries_embeddings,
-    k=30,
-    batch_size=batch_size,
+tree = tree.add(
+    documents=documents,
+    documents_to_leafs=documents_to_leafs,
 )
 
-utils.evaluate(
-    scores=scores,
+candidates = tree(
+    queries=test_queries,
+    k_leafs=2,  # number of leafs to search
+    k=10,  # number of documents to retrieve
+)
+
+documents, queries_ids, test_queries, qrels = datasets.load_beir_test(
+    dataset_name="scifact",
+)
+
+candidates = tree(
+    queries=test_queries,
+    k_leafs=2,
+    k=10,
+)
+
+
+scores = utils.evaluate(
+    scores=candidates["documents"],
     qrels=qrels,
     queries_ids=queries_ids,
-    metrics=["map", "ndcg@10", "ndcg@100", "recall@10", "recall@100"],
 )
+
+print(scores)
 ```
 
 ```python
-{
-    "map": 0.45,
-    "ndcg@10": 0.45,
-    "ndcg@100": 0.45,
-    "recall@10": 0.45,
-    "recall@100": 0.45
-}
+{"ndcg@10": 0.6642864174840303, "hits@1": 0.5533333333333333, "hits@2": 0.66, "hits@3": 0.7333333333333333, "hits@4": 0.7933333333333333, "hits@5": 0.8133333333333334, "hits@10": 0.8733333333333333}
 ```
 
 ## Evaluation dataset

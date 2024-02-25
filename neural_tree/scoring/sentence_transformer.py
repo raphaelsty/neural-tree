@@ -97,11 +97,15 @@ class SentenceTransformer:
         """Return True if the encoder is distinct for documents and nodes."""
         return False
 
-    def transform_queries(self, queries: list[str], batch_size: int) -> np.ndarray:
+    def transform_queries(
+        self, queries: list[str], batch_size: int, **kwargs
+    ) -> np.ndarray:
         """Transform queries to embeddings."""
         return self.model.encode(queries, batch_size=batch_size)
 
-    def transform_documents(self, documents: list[dict], batch_size: int) -> np.ndarray:
+    def transform_documents(
+        self, documents: list[dict], batch_size: int, **kwargs
+    ) -> np.ndarray:
         """Transform documents to embeddings."""
         return self.model.encode(
             [
