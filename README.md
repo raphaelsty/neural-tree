@@ -13,39 +13,42 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="license"></a>
 </div>
 
-Neural-Tree is a library designed to accelerate inference of information retrieval pipelines. Neural-Tree implements SIGIR 2023 publication [Constructing Tree-based Index for Efficient and Effective Dense Retrieval, Li et al., 2023](https://dl.acm.org/doi/10.1145/3539618.3591651). 
+Neural-Tree is designed to accelerate inference of Information Retrieval models. Neural-Tree implements SIGIR 2023 [Li et al., 2023](https://dl.acm.org/doi/10.1145/3539618.3591651) publication. 
 
-Neural-Tree is tailored to work efficiently with token-level embeddings such as ColBERT. You can create a tree from scratch or use an existing tree. The tree must be trained with a set of paired queries and documents. Once the tree is trained, you can use it to retrieve documents.
+Neural-Tree is tailored to work efficiently with ColBERT, Sentence Transformer and TfIdf models.
 
-You can ask the tree to retrieve documents or to retrieve the leafs that are most relevant to a query.
-
-Neural-Tree is compatible with ColBERT, Sentence Transformers and TF-IDF models.
+We can create a tree from scratch or use an existing tree structure. The tree must be trained with a set of paired queries and documents. Once the tree is trained, we can retrieve relevant documents or leafs from the tree given a set of queries.
 
 ## Installation
 
-To install `neural-tree` run:
+We can install neural-tree using:
 
-```bash
+```
 pip install neural-tree
 ```
 
-If you want to install the evaluation dependencies, you can use the following command:
+If we plan to evaluate our model while training install:
 
-```bash
+```
 pip install "neural-tree[eval]"
 ```
 
-## Training
+## Documentation
+
+The complete documentation is available [here](https://raphaelsty.github.io/neural-tree/).
+
+
+## Quick Start
 
 In order to create a tree-based index, we will need to gather training data.
-The training data consists of queries and documents paired. The following code shows a simple training dataset where each query is paired with a document.
+The training data consists of queries and documents paired:
 
 ```python
 train_queries = [
-    "query a",
-    "query b",
-    "query c",
-    "query d",
+    "query document a",
+    "query document b",
+    "query document c",
+    "query document d",
 ]
 
 train_documents = [
@@ -59,11 +62,10 @@ train_documents = [
 The following code shows how to train a tree model using the `scifact` dataset.
 You can replace the `scifact` dataset with any other dataset.
 
-
 ```python
 import torch
 
-from neural_tree import clustering, datasets, trees, utils
+from nlp_tree import clustering, datasets, trees, utils
 from neural_cherche import models
 
 documents, train_queries, train_documents = datasets.load_beir_train(
@@ -81,7 +83,7 @@ tree = trees.ColBERT(
     model=model,
     documents=documents, 
     leaf_balance_factor=100, # Minimum number of documents per leaf.
-    branch_balance_factor=3, # Number of childs per node.
+    branch_balance_factor=5, # Number of childs per node.
     n_jobs=-1, # We want to set it to 1 when using Google Colab, -1 otherwise.
 )
 
