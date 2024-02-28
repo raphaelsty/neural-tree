@@ -229,7 +229,7 @@ Note that this benchmark do not implement [ColBERTV2](https://arxiv.org/abs/2112
 
 ## Contributing
 
-We welcome contributions to Neural-Tree, a tool designed to enhance tree visualization, model node topics, and leverage the tree structure to expedite Large Language Model (LLM) searches. Our focus includes refining the clustering of ColBERT embeddings through hierarchical clustering, which is currently facilitated by TfIdf. Additionally, there's an opportunity to contribute towards optimizing clustering, aiming to achieve comprehensive ColBERT cluster optimization independently of TfIdf.
+We welcome contributions to Neural-Tree Our focus includes refining the clustering of ColBERT embeddings through hierarchical clustering, which is currently facilitated by TfIdf. Additionally, there's an opportunity to contribute towards optimizing clustering, aiming to achieve comprehensive ColBERT cluster optimization independently of TfIdf. Neural-Cherche is also a tool designed to enhance tree visualization, model node topics, and leverage the tree structure to accelerate Large Language Model (LLM) retrieval. 
 
 ## License
 
