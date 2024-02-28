@@ -156,30 +156,6 @@ print(scores["documents"])
 ]
 ```
 
-## Evaluation
-
-We can evaluate the performance of the tree using the following code:
-
-```python
-documents, queries_ids, test_queries, qrels = datasets.load_beir_test(
-    dataset_name="scifact",
-)
-
-candidates = tree(
-    queries=test_queries,
-    k_leafs=2,
-    k=10,
-)
-
-scores = utils.evaluate(
-    scores=candidates["documents"],
-    qrels=qrels,
-    queries_ids=queries_ids,
-)
-
-print(scores)
-```
-
 ## Benchmarks 
 
 <table>
