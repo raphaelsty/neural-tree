@@ -11,6 +11,7 @@ base_packages = [
     "transformers >= 4.34.0",
     "sentence-transformers >= 2.2.2",
     "neural-cherche >= 1.1.0",
+    "scikit-learn >= 1.4.0",
 ]
 
 eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]

@@ -42,18 +42,44 @@ The complete documentation is available [here](https://raphaelsty.github.io/neur
 
 ## Quick Start
 
-The following code shows how to train a tree model using the `scifact` dataset which load
-train_documents, train_queries and the whole corpora of documents.
+The following code shows how to train a tree index. Let's start by creating a fictional dataset:
+
+```python
+documents = [
+    {"id": 0, "content": "paris"},
+    {"id": 1, "content": "london"},
+    {"id": 2, "content": "berlin"},
+    {"id": 3, "content": "rome"},
+    {"id": 4, "content": "bordeaux"},
+    {"id": 5, "content": "milan"},
+]
+
+train_queries = [
+    "paris is the capital of france",
+    "london is the capital of england",
+    "berlin is the capital of germany",
+    "rome is the capital of italy",
+]
+
+train_documents = [
+    {"id": 0, "content": "paris"},
+    {"id": 1, "content": "london"},
+    {"id": 2, "content": "berlin"},
+    {"id": 3, "content": "rome"},
+]
+
+test_queries = [
+    "bordeaux is the capital of france",
+    "milan is the capital of italy",
+]
+```
+
+Let's train the index using the `documents`, `train_queries` and `train_documents` we have gathered.
 
 ```python
 import torch
-
 from neural_cherche import models
-from neural_tree import clustering, datasets, trees, utils
-
-documents, train_queries, train_documents = datasets.load_beir_train(
-    dataset_name="scifact",
-)
+from neural_tree import clustering, trees, utils
 
 model = models.ColBERT(
     model_name_or_path="raphaelsty/neural-cherche-colbert",
@@ -62,22 +88,22 @@ model = models.ColBERT(
 
 tree = trees.ColBERT(
     key="id",
-    on=["title", "text"],
+    on=["content"],
     model=model,
-    documents=documents, 
-    leaf_balance_factor=100,
-    branch_balance_factor=5,
-    n_jobs=-1, # We want to set it to 1 when using Google Colab.
+    documents=documents,
+    leaf_balance_factor=100,  # Number of documents per leaf
+    branch_balance_factor=5,  # Number children per node
+    n_jobs=-1,  # set to 1 with Google Colab
 )
 
-optimizer = torch.optim.AdamW(lr=3e-2, params=list(tree.parameters()))
+optimizer = torch.optim.AdamW(lr=3e-3, params=list(tree.parameters()))
 
 for step, batch_queries, batch_documents in utils.iter(
     queries=train_queries,
     documents=train_documents,
     shuffle=True,
     epochs=50,
-    batch_size=1024,
+    batch_size=32,
 ):
     loss = tree.loss(
         queries=batch_queries,
@@ -87,11 +113,12 @@ for step, batch_queries, batch_documents in utils.iter(
     loss.backward()
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
+```
 
-documents, queries_ids, test_queries, qrels = datasets.load_beir_test(
-    dataset_name="scifact",
-)
 
+Let's now duplicate some documents of the tree in order to increase accuracy.
+
+```python
 documents_to_leafs = clustering.optimize_leafs(
     tree=tree,
     queries=train_queries + test_queries,
@@ -104,18 +131,29 @@ tree = tree.add(
 )
 ```
 
-## Search
-
-We can now search for documents using the tree we have trained:
+We are now ready to retrieve documents:
 
 ```python
-candidates = tree(
-    queries=["science topic", "history topic"],
-    k_leafs=2, # number of leafs to search
-    k=10, # number of documents to retrieve
+scores = tree(
+    queries=["bordeaux", "milan"],
+    k_leafs=2,
+    k=2,
 )
 
-print(candidates)
+print(scores["documents"])
+```
+
+```python
+[
+    [
+        {"id": 4, "similarity": 5.28, "leaf": "12"},
+        {"id": 0, "similarity": 3.17, "leaf": "12"},
+    ],
+    [
+        {"id": 5, "similarity": 5.11, "leaf": "10"},
+        {"id": 2, "similarity": 3.57, "leaf": "10"},
+    ],
+]
 ```
 
 ## Evaluation
@@ -215,8 +253,7 @@ Note that this benchmark do not implement [ColBERTV2](https://arxiv.org/abs/2112
 
 ## Contributing
 
-Contributions to Neural-Tree are welcome. This tool aims to tackle tree visualization,
-modeling node topics, and using the tree to speed up LLM search. We are also looking to improve clustering of ColBERT embeddings while performing hierarchical clustering which is now handled by TfIdf. The optimization clustering is also a good place to contribute in order to provide an end-to-end ColBERT cluster optimization without TfIdf.
+We welcome contributions to Neural-Tree, a tool designed to enhance tree visualization, model node topics, and leverage the tree structure to expedite Large Language Model (LLM) searches. Our focus includes refining the clustering of ColBERT embeddings through hierarchical clustering, which is currently facilitated by TfIdf. Additionally, there's an opportunity to contribute towards optimizing clustering, aiming to achieve comprehensive ColBERT cluster optimization independently of TfIdf.
 
 ## License
 
